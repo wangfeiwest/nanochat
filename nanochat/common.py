@@ -226,6 +226,23 @@ class DummyWandb:
 # and PR: https://github.com/karpathy/nanochat/pull/147
 def get_peak_flops(device_name: str) -> float:
     name = device_name.lower()
+    
+    # Handle ROCm AMD GPUs with empty device name
+    # Try to get gcnArchName from device properties
+    if name == '' and torch.cuda.is_available():
+        try:
+            props = torch.cuda.get_device_properties(0)
+            if hasattr(props, 'gcnArchName'):
+                arch = props.gcnArchName.lower()
+                # Map AMD architectures to peak flops
+                if 'gfx942' in arch or 'mi300x' in arch:
+                    return 1.3074e15  # MI300X BF16 peak flops
+                elif 'gfx940' in arch or 'mi300a' in arch:
+                    return 980.6e12   # MI300A
+                elif 'gfx90a' in arch or 'mi250x' in arch:
+                    return 383e12    # MI250X
+        except:
+            pass
 
     # Table order matters: more specific patterns first.
     _PEAK_FLOPS_TABLE = (
